@@ -56,7 +56,7 @@ app.use("/api/carts", cartRoutes);
 io.on("connection", (socket) => {
 	console.log(`Se ha conectado un cliente con id ${socket.id}`);
 
-	// Esta función se usará para emitir actualizaciones de productos
+	// Emitir actualizaciones de productos
 	const emitProductUpdate = async () => {
 		const result = await productManager.getProducts({ page: 1, limit: 10 });
 		io.emit("updateProducts", {
