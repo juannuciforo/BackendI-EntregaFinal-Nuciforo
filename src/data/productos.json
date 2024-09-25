@@ -1,0 +1,32 @@
+[
+  {
+    "id": 3,
+    "title": "Nuevo Producto 3",
+    "description": "Nuevo producto creado mediante form",
+    "code": "ZYZ124",
+    "price": "150",
+    "status": true,
+    "stock": "1",
+    "thumbnails": []
+  },
+  {
+    "id": 4,
+    "title": "Nuevo Producto 4",
+    "description": "Nuevo producto creado mediante form",
+    "code": "ZYZ125",
+    "price": "250",
+    "status": true,
+    "stock": "20",
+    "thumbnails": []
+  },
+  {
+    "id": 5,
+    "title": "Nuevo Producto 5",
+    "description": "Nuevo producto creado mediante form",
+    "code": "ZYZ126",
+    "price": "300",
+    "status": true,
+    "stock": "50",
+    "thumbnails": []
+  }
+]
