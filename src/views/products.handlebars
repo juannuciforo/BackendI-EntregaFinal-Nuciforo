@@ -1,26 +1,86 @@
 <h1>Productos</h1>
 
-<div class="products-grid">
+<div id="productList">
     {{#each products}}
-    <div class="product-card">
+    <div class="product" data-id="{{this._id}}">
         <h2>{{this.title}}</h2>
         <p>{{this.description}}</p>
         <p>Precio: ${{this.price}}</p>
         <p>Stock: {{this.stock}}</p>
-        <a href="/products/{{this._id}}" class="btn btn-info">Ver detalles</a>
-        <button class="btn btn-primary add-to-cart" data-id="{{this._id}}">Agregar al carrito</button>
+        <p>Categoría: {{this.category}}</p>
+        <button class="deleteProduct" data-id="{{this._id}}">Eliminar</button>
     </div>
     {{/each}}
 </div>
 
 <div class="pagination">
     {{#if pagination.hasPrevPage}}
-    <a href="{{pagination.prevLink}}" class="btn btn-secondary">Anterior</a>
+    <a
+        href="/products?page={{pagination.prevPage}}&limit={{query.limit}}&sort={{query.sort}}&query={{query.query}}&category={{query.category}}&status={{query.status}}">Anterior</a>
     {{/if}}
     <span>Página {{pagination.page}} de {{pagination.totalPages}}</span>
     {{#if pagination.hasNextPage}}
-    <a href="{{pagination.nextLink}}" class="btn btn-secondary">Siguiente</a>
+    <a
+        href="/products?page={{pagination.nextPage}}&limit={{query.limit}}&sort={{query.sort}}&query={{query.query}}&category={{query.category}}&status={{query.status}}">Siguiente</a>
     {{/if}}
 </div>
 
-<script src="/js/products.js"></script>
+<form id="addProductForm">
+    <input type="text" id="title" placeholder="Título" required>
+    <input type="text" id="description" placeholder="Descripción" required>
+    <input type="number" id="price" placeholder="Precio" required>
+    <input type="number" id="stock" placeholder="Stock" required>
+    <input type="text" id="category" placeholder="Categoría" required>
+    <button type="submit">Agregar Producto</button>
+</form>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+
+    socket.on('updateProducts', (data) => {
+        const productList = document.getElementById('productList');
+        productList.innerHTML = data.products.map(product => `
+            <div class="product" data-id="${product._id}">
+                <h2>${product.title}</h2>
+                <p>${product.description}</p>
+                <p>Precio: $${product.price}</p>
+                <p>Stock: ${product.stock}</p>
+                <p>Categoría: ${product.category}</p>
+                <button class="deleteProduct" data-id="${product._id}">Eliminar</button>
+            </div>
+        `).join('');
+
+        // Actualizar listeners de botones de eliminar
+        document.querySelectorAll('.deleteProduct').forEach(button => {
+            button.addEventListener('click', function () {
+                socket.emit('deleteProduct', this.dataset.id);
+            });
+        });
+    });
+
+    document.getElementById('addProductForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const productData = {
+            title: document.getElementById('title').value,
+            description: document.getElementById('description').value,
+            price: document.getElementById('price').value,
+            stock: document.getElementById('stock').value,
+            category: document.getElementById('category').value
+        };
+        socket.emit('addProduct', productData);
+        this.reset();
+    });
+
+    socket.on('productAdded', (message) => {
+        alert(message);
+    });
+
+    socket.on('productDeleted', (message) => {
+        alert(message);
+    });
+
+    socket.on('productError', (error) => {
+        alert('Error: ' + error);
+    });
+</script>

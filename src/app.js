@@ -36,10 +36,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
-app.use("/", viewsRouter);
-app.use("/api/products", productRoutes);
-app.use("/api/carts", cartRoutes);
-
 const PORT = 8080;
 const server = app.listen(PORT, () => {
 	console.log(`Server escuchando en puerto ${PORT}`);
@@ -47,8 +43,34 @@ const server = app.listen(PORT, () => {
 
 const io = new Server(server);
 
+// Middleware para hacer io accesible en las rutas
+app.use((req, res, next) => {
+	req.io = io;
+	next();
+});
+
+app.use("/", viewsRouter);
+app.use("/api/products", productRoutes);
+app.use("/api/carts", cartRoutes);
+
 io.on("connection", (socket) => {
 	console.log(`Se ha conectado un cliente con id ${socket.id}`);
+
+	// Esta función se usará para emitir actualizaciones de productos
+	const emitProductUpdate = async () => {
+		const result = await productManager.getProducts({ page: 1, limit: 10 });
+		io.emit("updateProducts", {
+			products: result.payload,
+			pagination: {
+				page: result.page,
+				totalPages: result.totalPages,
+				hasNextPage: result.hasNextPage,
+				hasPrevPage: result.hasPrevPage,
+				nextPage: result.nextPage,
+				prevPage: result.prevPage,
+			},
+		});
+	};
 
 	socket.on("requestProducts", async ({ page, limit }) => {
 		try {
@@ -71,20 +93,9 @@ io.on("connection", (socket) => {
 
 	socket.on("addProduct", async (productData) => {
 		try {
-			const newProduct = await productManager.addProduct(productData);
-			const result = await productManager.getProducts({ page: 1, limit: 10 });
-			io.emit("updateProducts", {
-				products: result.payload,
-				pagination: {
-					page: result.page,
-					totalPages: result.totalPages,
-					hasNextPage: result.hasNextPage,
-					hasPrevPage: result.hasPrevPage,
-					nextPage: result.nextPage,
-					prevPage: result.prevPage,
-				},
-			});
-			socket.emit("productAdded", newProduct);
+			await productManager.addProduct(productData);
+			await emitProductUpdate();
+			socket.emit("productAdded", "Producto agregado exitosamente");
 		} catch (error) {
 			socket.emit("productError", error.message);
 		}
@@ -93,19 +104,8 @@ io.on("connection", (socket) => {
 	socket.on("deleteProduct", async (productId) => {
 		try {
 			await productManager.deleteProduct(productId);
-			const result = await productManager.getProducts({ page: 1, limit: 10 });
-			io.emit("updateProducts", {
-				products: result.payload,
-				pagination: {
-					page: result.page,
-					totalPages: result.totalPages,
-					hasNextPage: result.hasNextPage,
-					hasPrevPage: result.hasPrevPage,
-					nextPage: result.nextPage,
-					prevPage: result.prevPage,
-				},
-			});
-			socket.emit("productDeleted", productId);
+			await emitProductUpdate();
+			socket.emit("productDeleted", "Producto eliminado exitosamente");
 		} catch (error) {
 			socket.emit("productError", error.message);
 		}

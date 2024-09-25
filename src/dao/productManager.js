@@ -2,8 +2,17 @@ import Product from "../models/product.js";
 
 class ProductManager {
 	async getProducts(options = {}) {
-		const { limit = 10, page = 1, sort, query } = options;
+		const { limit = 10, page = 1, sort, query, category, status } = options;
 		const filter = {};
+
+		if (category) {
+			filter.category = category;
+		}
+
+		if (status !== undefined) {
+			filter.status = status === "true";
+		}
+
 		if (query) {
 			filter.$or = [
 				{ title: { $regex: query, $options: "i" } },
@@ -31,10 +40,10 @@ class ProductManager {
 			hasPrevPage: result.hasPrevPage,
 			hasNextPage: result.hasNextPage,
 			prevLink: result.hasPrevPage
-				? `/api/products?page=${result.prevPage}&limit=${limit}&sort=${sort}&query=${query}`
+				? `/api/products?page=${result.prevPage}&limit=${limit}&sort=${sort}&query=${query}&category=${category}&status=${status}`
 				: null,
 			nextLink: result.hasNextPage
-				? `/api/products?page=${result.nextPage}&limit=${limit}&sort=${sort}&query=${query}`
+				? `/api/products?page=${result.nextPage}&limit=${limit}&sort=${sort}&query=${query}&category=${category}&status=${status}`
 				: null,
 		};
 	}
