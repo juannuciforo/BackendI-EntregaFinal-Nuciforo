@@ -1,5 +1,6 @@
 import Cart from "../models/cart.js";
 import Product from "../models/product.js";
+import mongoose from 'mongoose';
 
 class CartManager {
 	async createCart() {
@@ -58,7 +59,18 @@ class CartManager {
 		if (!cart) {
 			throw new Error("Carrito no encontrado");
 		}
-
+	
+		// Se valida que todos los productos existan
+		for (let item of products) {
+			if (!mongoose.Types.ObjectId.isValid(item.product)) {
+				throw new Error(`ID de producto inválido: ${item.product}`);
+			}
+			const product = await Product.findById(item.product);
+			if (!product) {
+				throw new Error(`Producto con id ${item.product} no existe`);
+			}
+		}
+	
 		cart.products = products;
 		await cart.save();
 		return cart;
