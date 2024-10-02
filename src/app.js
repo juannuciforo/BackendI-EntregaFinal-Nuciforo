@@ -12,14 +12,16 @@ import ProductManager from "./dao/productManager.js";
 const app = express();
 const productManager = new ProductManager();
 
-// Conexión a MongoDB
+// Conexión a MongoDB Atlas
+const MONGODB_URI = "mongodb+srv://juannuciforo:0DLcjkqofSFXzSkX@coderhousedb.norii.mongodb.net/?retryWrites=true&w=majority&appName=CoderHouseDB";
+
 mongoose
-	.connect("mongodb://localhost:27017/ecommerce", {
+	.connect(MONGODB_URI, {
 		useNewUrlParser: true,
 		useUnifiedTopology: true,
 	})
-	.then(() => console.log("Conectado a MongoDB"))
-	.catch((err) => console.error("Error conectando a MongoDB:", err));
+	.then(() => console.log("Conectado a MongoDB Atlas"))
+	.catch((err) => console.error("Error conectando a MongoDB Atlas:", err));
 
 // Configuración de Handlebars
 app.engine(
@@ -56,7 +58,7 @@ app.use("/api/carts", cartRoutes);
 io.on("connection", (socket) => {
 	console.log(`Se ha conectado un cliente con id ${socket.id}`);
 
-	// Emitir actualizaciones de productos
+	// Se emiten actualizaciones de productos
 	const emitProductUpdate = async () => {
 		const result = await productManager.getProducts({ page: 1, limit: 10 });
 		io.emit("updateProducts", {
@@ -91,23 +93,25 @@ io.on("connection", (socket) => {
 		}
 	});
 
-	socket.on("addProduct", async (productData) => {
+	socket.on('addProduct', async (productData) => {
 		try {
 			await productManager.addProduct(productData);
 			await emitProductUpdate();
-			socket.emit("productAdded", "Producto agregado exitosamente");
+			socket.emit('productAdded', 'Producto agregado exitosamente');
 		} catch (error) {
-			socket.emit("productError", error.message);
+			console.error('Error al agregar producto:', error);
+			socket.emit('productError', error.message || 'Error desconocido al agregar el producto');
 		}
 	});
-
-	socket.on("deleteProduct", async (productId) => {
+	
+	socket.on('deleteProduct', async (productId) => {
 		try {
 			await productManager.deleteProduct(productId);
 			await emitProductUpdate();
-			socket.emit("productDeleted", "Producto eliminado exitosamente");
+			socket.emit('productDeleted', 'Producto eliminado exitosamente');
 		} catch (error) {
-			socket.emit("productError", error.message);
+			console.error('Error al eliminar producto:', error);
+			socket.emit('productError', error.message || 'Error al eliminar el producto');
 		}
 	});
 });

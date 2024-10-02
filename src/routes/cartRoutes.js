@@ -66,17 +66,20 @@ router.put("/:cid", async (req, res) => {
 });
 
 // PUT /api/carts/:cid/products/:pid
-router.put("/:cid/products/:pid", async (req, res) => {
+router.put("/:cid", async (req, res) => {
 	try {
-		const { quantity } = req.body;
-		const updatedCart = await cartManager.updateProductQuantity(
-			req.params.cid,
-			req.params.pid,
-			quantity
-		);
+		const { products } = req.body;
+		// Se verifica que todos los productos existan
+		for (let item of products) {
+			const product = await Product.findById(item.product);
+			if (!product) {
+				return res.status(400).json({ status: "error", message: `Producto con id ${item.product} no existe` });
+			}
+		}
+		const updatedCart = await cartManager.updateCart(req.params.cid, products);
 		res.json(updatedCart);
 	} catch (error) {
-		res.status(404).json({ status: "error", message: error.message });
+		res.status(500).json({ status: "error", message: error.message });
 	}
 });
 

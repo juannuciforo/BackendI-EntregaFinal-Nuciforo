@@ -9,28 +9,37 @@ router.get('/', (req, res) => {
 });
 
 router.get('/products', async (req, res) => {
-    const { page = 1, limit = 10, sort, query, category, status } = req.query;
-    const options = {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        sort,
-        query,
-        category,
-        status
-    };
-    const result = await productManager.getProducts(options);
-    res.render('products', { 
-        products: result.payload,
-        pagination: {
-            page: result.page,
-            totalPages: result.totalPages,
-            hasNextPage: result.hasNextPage,
-            hasPrevPage: result.hasPrevPage,
-            nextPage: result.nextPage,
-            prevPage: result.prevPage
-        },
-        query: { sort, query, category, status }
-    });
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const { sort, query, category } = req.query;
+        
+        const options = {
+            page,
+            limit,
+            sort,
+            query,
+            category
+        };
+        
+        const result = await productManager.getProducts(options);
+        
+        res.render('products', { 
+            products: result.payload,
+            pagination: {
+                page: result.page,
+                totalPages: result.totalPages,
+                hasNextPage: result.hasNextPage,
+                hasPrevPage: result.hasPrevPage,
+                nextPage: result.nextPage,
+                prevPage: result.prevPage
+            },
+            query: { ...req.query, page, limit }
+        });
+    } catch (error) {
+        console.error("Error en la ruta /products:", error);
+        res.status(500).render('error', { error: 'Error al cargar los productos' });
+    }
 });
 
 export { router };

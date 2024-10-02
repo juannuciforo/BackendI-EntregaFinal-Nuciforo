@@ -15,6 +15,16 @@ const productSchema = new mongoose.Schema(
 	{ timestamps: true }
 );
 
+productSchema.pre('save', async function (next) {
+	if (this.isNew || this.isModified('code')) {
+		const existingProduct = await this.constructor.findOne({ code: this.code });
+		if (existingProduct) {
+			return next(new Error('El código del producto ya existe'));
+		}
+	}
+	next();
+});
+
 productSchema.plugin(mongoosePaginate);
 
 const Product = mongoose.model("Product", productSchema);

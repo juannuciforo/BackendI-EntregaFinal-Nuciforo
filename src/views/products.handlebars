@@ -5,6 +5,8 @@
     <div class="product" data-id="{{this._id}}">
         <h2>{{this.title}}</h2>
         <p>{{this.description}}</p>
+        <p>Id: {{this._id}}</p>
+        <p>Código: {{this.code}}</p>
         <p>Precio: ${{this.price}}</p>
         <p>Stock: {{this.stock}}</p>
         <p>Categoría: {{this.category}}</p>
@@ -15,19 +17,22 @@
 
 <div class="pagination">
     {{#if pagination.hasPrevPage}}
-    <a
-        href="/products?page={{pagination.prevPage}}&limit={{query.limit}}&sort={{query.sort}}&query={{query.query}}&category={{query.category}}&status={{query.status}}">Anterior</a>
+    <a href="/products?page={{pagination.prevPage}}&limit={{query.limit}}&sort={{query.sort}}&query={{query.query}}&category={{query.category}}"
+        class="btn btn-primary">Anterior</a>
     {{/if}}
+
     <span>Página {{pagination.page}} de {{pagination.totalPages}}</span>
+
     {{#if pagination.hasNextPage}}
-    <a
-        href="/products?page={{pagination.nextPage}}&limit={{query.limit}}&sort={{query.sort}}&query={{query.query}}&category={{query.category}}&status={{query.status}}">Siguiente</a>
+    <a href="/products?page={{pagination.nextPage}}&limit={{query.limit}}&sort={{query.sort}}&query={{query.query}}&category={{query.category}}"
+        class="btn btn-primary">Siguiente</a>
     {{/if}}
 </div>
 
 <form id="addProductForm">
     <input type="text" id="title" placeholder="Título" required>
     <input type="text" id="description" placeholder="Descripción" required>
+    <input type="text" id="code" placeholder="Código" required>
     <input type="number" id="price" placeholder="Precio" required>
     <input type="number" id="stock" placeholder="Stock" required>
     <input type="text" id="category" placeholder="Categoría" required>
@@ -38,32 +43,51 @@
 <script>
     const socket = io();
 
+    function setupDeleteButtons() {
+        document.querySelectorAll('.deleteProduct').forEach(button => {
+            button.addEventListener('click', function () {
+                const productId = this.dataset.id;
+                console.log('Intentando eliminar producto con ID:', productId);
+                socket.emit('deleteProduct', productId);
+            });
+        });
+    }
+
     socket.on('updateProducts', (data) => {
         const productList = document.getElementById('productList');
         productList.innerHTML = data.products.map(product => `
-            <div class="product" data-id="${product._id}">
-                <h2>${product.title}</h2>
-                <p>${product.description}</p>
-                <p>Precio: $${product.price}</p>
-                <p>Stock: ${product.stock}</p>
-                <p>Categoría: ${product.category}</p>
-                <button class="deleteProduct" data-id="${product._id}">Eliminar</button>
-            </div>
-        `).join('');
+        <div class="product" data-id="${product._id}">
+            <h2>${product.title}</h2>
+            <p>${product.description}</p>
+            <p>Código: ${product.code}</p>
+            <p>Precio: $${product.price}</p>
+            <p>Stock: ${product.stock}</p>
+            <p>Categoría: ${product.category}</p>
+            <button class="deleteProduct" data-id="${product._id}">Eliminar</button>
+        </div>
+    `).join('');
 
-        // Actualizar listeners de botones de eliminar
-        document.querySelectorAll('.deleteProduct').forEach(button => {
-            button.addEventListener('click', function () {
-                socket.emit('deleteProduct', this.dataset.id);
-            });
-        });
+        setupDeleteButtons();
+        updatePagination(data.pagination);
+        // Se actualiza la URL para reflejar que estamos en la primera página
+        window.history.pushState({}, '', '/products?page=1&limit=10');
     });
+
+    function updatePagination(pagination) {
+        const paginationDiv = document.querySelector('.pagination');
+        paginationDiv.innerHTML = `
+        ${pagination.hasPrevPage ? `<a href="/products?page=${pagination.prevPage}&limit=10" class="btn btn-primary">Anterior</a>` : ''}
+        <span>Página ${pagination.page} de ${pagination.totalPages}</span>
+        ${pagination.hasNextPage ? `<a href="/products?page=${pagination.nextPage}&limit=10" class="btn btn-primary">Siguiente</a>` : ''}
+    `;
+    }
 
     document.getElementById('addProductForm').addEventListener('submit', function (e) {
         e.preventDefault();
         const productData = {
             title: document.getElementById('title').value,
             description: document.getElementById('description').value,
+            code: document.getElementById('code').value,
             price: document.getElementById('price').value,
             stock: document.getElementById('stock').value,
             category: document.getElementById('category').value
@@ -77,10 +101,15 @@
     });
 
     socket.on('productDeleted', (message) => {
-        alert(message);
+        console.log('Producto eliminado:', message);
+        alert('Producto eliminado exitosamente');
     });
 
-    socket.on('productError', (error) => {
-        alert('Error: ' + error);
+    socket.on('productError', (errorMessage) => {
+        console.error('Error del servidor:', errorMessage);
+        alert('Error: ' + errorMessage);
     });
+
+    // Se configuran los botones de eliminar al cargar la página
+    setupDeleteButtons();
 </script>
